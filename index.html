@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Temperature Converter</title>
+    <link rel="icon" href="image.png" type="image/png">
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        #terminal {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #333;
+            max-height: 80vh;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #terminal::-webkit-scrollbar {
+            display: none;
+        }
+        .prompt {
+            color: #9370DB; /* Purple color for the prompt */
+        }
+        .user-input {
+            color: #87CEFA; /* Pastel blue color for user input */
+        }
+        .error {
+            color: #f00;
+        }
+        #cursor {
+            display: inline-block;
+            width: 1px;
+            height: 15px;
+            background-color: #fff;
+            animation: blink 1.2s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 0; }
+            40% { opacity: 0; }
+            50% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        .copy-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 12px;
+            margin-left: 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .command-icon {
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal">
+        <div class="no-select">Welcome to the Terminal Temperature Converter!</div>
+        <div class="no-select">Type "help" to see available commands.</div>
+        <div id="input-line" class="prompt">➜ <span id="currentInput" class="user-input"></span><span id="cursor"></span></div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        let currentInput = document.getElementById('currentInput');
+        let inputLine = document.getElementById('input-line');
+        let inputBuffer = '';
+
+        function addToTerminal(text, className = '') {
+            const line = document.createElement('div');
+            if (text.startsWith('> ')) {
+                const icon = document.createElement('img');
+                icon.src = 'image.png';
+                icon.alt = 'Command';
+                icon.className = 'command-icon';
+                line.appendChild(icon);
+
+                const promptSpan = document.createElement('span');
+                promptSpan.textContent = '➜ ';
+                promptSpan.className = 'prompt';
+                line.appendChild(promptSpan);
+                
+                const contentSpan = document.createElement('span');
+                contentSpan.textContent = text.slice(2);
+                contentSpan.className = 'user-input';
+                line.appendChild(contentSpan);
+            } else {
+                line.textContent = text;
+            }
+            line.className += ' ' + className;
+            terminal.insertBefore(line, inputLine);
+        }
+
+        function createCopyButton(text) {
+            const button = document.createElement('button');
+            button.textContent = 'Copy';
+            button.className = 'copy-button';
+            button.onclick = function() {
+                navigator.clipboard.writeText(text).then(() => {
+                    button.textContent = 'Copied!';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                    }, 2000);
+                });
+            };
+            return button;
+        }
+
+        function processCommand(command) {
+            const parts = command.split(' ');
+            const cmd = parts[0].toLowerCase();
+
+            switch (cmd) {
+                case 'help':
+                    addToTerminal('Available commands:');
+                    addToTerminal('  help - Show this help message');
+                    addToTerminal('  clear - Clear the terminal');
+                    addToTerminal('  ctof <temperature> - Convert Celsius to Fahrenheit');
+                    addToTerminal('  ftoc <temperature> - Convert Fahrenheit to Celsius');
+                    break;
+                case 'clear':
+                    while (terminal.firstChild !== inputLine) {
+                        terminal.removeChild(terminal.firstChild);
+                    }
+                    inputBuffer = '';
+                    currentInput.textContent = '';
+                    break;
+                case 'ctof':
+                    if (parts.length !== 2 || isNaN(parts[1])) {
+                        addToTerminal('Usage: ctof <temperature>', 'error');
+                    } else {
+                        const celsius = parseFloat(parts[1]);
+                        const fahrenheit = (celsius * 9/5) + 32;
+                        const result = `${celsius}°C is ${fahrenheit.toFixed(2)}°F`;
+                        const line = document.createElement('div');
+                        line.textContent = result;
+                        const copyButton = createCopyButton(`${fahrenheit.toFixed(2)}°F`);
+                        line.appendChild(copyButton);
+                        terminal.insertBefore(line, inputLine);
+                    }
+                    break;
+                case 'ftoc':
+                    if (parts.length !== 2 || isNaN(parts[1])) {
+                        addToTerminal('Usage: ftoc <temperature>', 'error');
+                    } else {
+                        const fahrenheit = parseFloat(parts[1]);
+                        const celsius = (fahrenheit - 32) * 5/9;
+                        const result = `${fahrenheit}°F is ${celsius.toFixed(2)}°C`;
+                        const line = document.createElement('div');
+                        line.textContent = result;
+                        const copyButton = createCopyButton(`${celsius.toFixed(2)}°C`);
+                        line.appendChild(copyButton);
+                        terminal.insertBefore(line, inputLine);
+                    }
+                    break;
+                default:
+                    addToTerminal(`Unknown command: ${cmd}`, 'error');
+                    addToTerminal('Type "help" for available commands');
+            }
+        }
+
+        function updateCurrentInput() {
+            currentInput.textContent = inputBuffer;
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                return; // Ignore Ctrl/Cmd key combinations
+            }
+            if (event.key === ' ') {
+                event.preventDefault();
+            }
+            if (event.key === 'Enter') {
+                const command = inputBuffer.trim();
+                addToTerminal(`> ${command}`, 'prompt');
+                processCommand(command);
+                inputBuffer = '';
+                updateCurrentInput();
+            } else if (event.key === 'Backspace') {
+                inputBuffer = inputBuffer.slice(0, -1);
+                updateCurrentInput();
+            } else if (event.key.length === 1) {
+                inputBuffer += event.key;
+                updateCurrentInput();
+            }
+            terminal.scrollTop = terminal.scrollHeight;
+        });
+
+        // Ensure focus is always on the terminal
+        document.addEventListener('click', function() {
+            terminal.focus();
+        });
+    </script>
+</body>
+</html>
+
+
